@@ -74,7 +74,7 @@ Clear conversion push such as:
 Measures whether the reply acknowledges user context, concerns, or effort.
 
 Low:
-Dry factual tone
+Dry and factual
 
 Mid:
 Light acknowledgment:
@@ -120,13 +120,13 @@ Explicit timing or scarcity:
 Measures stylistic similarity (formality, friendliness, confidence).
 
 Low:
-Sounds robotic, legalistic, or overly formal compared to consultant
+Sounds robotic, legalistic, or overly formal
 
 Mid:
 Neutral tone
 
 High:
-Conversational DM-style tone similar to consultant
+Conversational DM-style tone, sounds human and natural, friendly and professional
 
 ----------------------------------------
 

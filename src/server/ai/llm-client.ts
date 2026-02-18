@@ -98,6 +98,7 @@ async function callGoogleGenerateText(input: GenerateInput): Promise<string> {
   return text;
 }
 
+// not enough tokens to test, so using gemini instead
 async function callOpenAiCompatibleGenerateText(
   baseUrl: string,
   apiKey: string,
@@ -152,6 +153,7 @@ async function callOpenAiCompatibleGenerateText(
   return text;
 }
 
+// not enough tokens to test, so using gemini for everything instead
 async function generateByRole(input: GenerateInput): Promise<string> {
   // const provider = roleProviderMap[input.role];
 

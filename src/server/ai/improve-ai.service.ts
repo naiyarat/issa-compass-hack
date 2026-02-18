@@ -112,6 +112,27 @@ function averageScores(items: Scores[]): Scores {
   };
 }
 
+const SCORE_KEYS: (keyof Scores)[] = [
+  "proactiveness",
+  "salesIntent",
+  "empathy",
+  "clarity",
+  "urgency",
+  "toneMatch",
+  "lengthMatch",
+];
+
+function computeDeltaFromScores(
+  aiScores: Scores,
+  consultantScores: Scores,
+): number {
+  const sum = SCORE_KEYS.reduce(
+    (acc, key) => acc + Math.abs(aiScores[key] - consultantScores[key]),
+    0,
+  );
+  return sum / SCORE_KEYS.length;
+}
+
 type GraderLike = { recommendedEdits: string[]; diagnosis: string };
 
 function mergeRecommendedEdits(graders: GraderLike[]): string[] {
@@ -252,9 +273,7 @@ export async function improveAiRun({
         graderResults.map((g) => g.consultantScores),
       );
       runConsultantScores = avgConsultantScores;
-      avgDelta =
-        graderResults.reduce((acc, g) => acc + g.delta, 0) /
-        graderResults.length;
+      avgDelta = computeDeltaFromScores(avgAiScores, avgConsultantScores);
       graderResultsForMerge = graderResults;
     } else {
       const consultantScores = runConsultantScores!;
@@ -281,9 +300,7 @@ export async function improveAiRun({
       }
       avgAiScores = averageScores(graderResults.map((g) => g.aiScores));
       avgConsultantScores = consultantScores;
-      avgDelta =
-        graderResults.reduce((acc, g) => acc + g.delta, 0) /
-        graderResults.length;
+      avgDelta = computeDeltaFromScores(avgAiScores, avgConsultantScores);
       graderResultsForMerge = graderResults;
     }
 
@@ -367,9 +384,10 @@ export async function improveAiRun({
   }
 
   const now = new Date();
+  const promptToStore = currentPrompt;
   await db
     .update(masterPrompt)
-    .set({ prompt: bestPrompt, updatedAt: now })
+    .set({ prompt: promptToStore, updatedAt: now })
     .where(and(eq(masterPrompt.id, 1)));
 
   await db.insert(promptRun).values({
@@ -378,14 +396,14 @@ export async function improveAiRun({
     consultantReply: input.consultantReply,
     iterations: runLog.length,
     bestDelta,
-    bestPrompt,
+    bestPrompt: promptToStore,
     runLogJson: runLog,
   });
 
   return {
     runId,
     predictedReply: lastPredictedReply,
-    updatedPrompt: bestPrompt,
+    updatedPrompt: promptToStore,
     bestDelta,
     iterations: runLog.length,
     runLog,
@@ -444,7 +462,6 @@ export async function updateMasterPrompt({
   const trimmed = prompt.trim();
   if (!trimmed) throw new Error("INVALID_UPDATED_PROMPT");
 
-  await getOrCreateMasterPrompt(db);
   const now = new Date();
   await db
     .update(masterPrompt)

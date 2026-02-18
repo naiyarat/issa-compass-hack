@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
 import ReactDiffViewer from "react-diff-viewer-continued";
 import { api } from "@/trpc/react";
 import {
@@ -7,7 +15,7 @@ import {
   httpBatchStreamLink,
   loggerLink,
 } from "@trpc/client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SuperJSON from "superjson";
 
 import {
@@ -91,8 +99,8 @@ const DIMENSION_LABELS = [
   ["Empathy", "empathy"],
   ["Clarity", "clarity"],
   ["Urgency", "urgency"],
-  ["Tone Match", "toneMatch"],
-  ["Length Match", "lengthMatch"],
+  ["Tone", "toneMatch"],
+  ["Length", "lengthMatch"],
 ] as const;
 
 type ScoresShape = {
@@ -193,6 +201,7 @@ export default function Home() {
     null,
   );
   const [isStreamRunning, setIsStreamRunning] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [editPrompt, setEditPrompt] = useState("");
 
   const masterPromptQuery = api.aiPrompt.getMasterPrompt.useQuery();
@@ -274,18 +283,23 @@ export default function Home() {
     setImproveStreamError(null);
     setImproveStreamEvents([]);
     setIsStreamRunning(true);
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     streamClient.aiPrompt.improveAiStream
-      .query({
-        clientSequence: selectedImprovePreset.clientSequence,
-        chatHistory: selectedImprovePreset.chatHistory,
-        consultantReply: selectedImprovePreset.consultantReply,
-        maxIterations: Number(maxIterations) || 5,
-        thresholdDelta: Number(thresholdDelta) || 20,
-        earlyStopPatience: 2,
-        graderEnsembleCount: Number(graderEnsembleCount) || 1,
-        includePromptDiff: true,
-      })
+      .query(
+        {
+          clientSequence: selectedImprovePreset.clientSequence,
+          chatHistory: selectedImprovePreset.chatHistory,
+          consultantReply: selectedImprovePreset.consultantReply,
+          maxIterations: Number(maxIterations) || 5,
+          thresholdDelta: Number(thresholdDelta) || 20,
+          earlyStopPatience: 2,
+          graderEnsembleCount: Number(graderEnsembleCount) || 1,
+          includePromptDiff: true,
+        },
+        { signal },
+      )
       .then(async (iterable) => {
         for await (const event of iterable as AsyncIterable<StreamEvent>) {
           setImproveStreamEvents((prev) => [...prev, event]);
@@ -296,10 +310,18 @@ export default function Home() {
         setIsStreamRunning(false);
         void masterPromptQuery.refetch();
       })
-      .catch((error: { message?: string }) => {
-        setImproveStreamError(error.message ?? "Failed to consume stream.");
+      .catch((error: { message?: string; name?: string }) => {
+        if (error?.name === "AbortError") {
+          setImproveStreamError(null);
+        } else {
+          setImproveStreamError(error?.message ?? "Failed to consume stream.");
+        }
         setIsStreamRunning(false);
       });
+  };
+
+  const cancelStream = () => {
+    abortControllerRef.current?.abort();
   };
 
   const runManualImprove = () => {
@@ -332,7 +354,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 text-gray-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4">
-        <h1 className="text-3xl font-bold">AI Prompt Control Panel</h1>
+        <h1 className="text-3xl font-bold">Nike's Issa Compass Hack Panel</h1>
 
         <SectionCard title="Master Prompt">
           <p className="mb-2 text-sm text-gray-600">
@@ -366,6 +388,25 @@ export default function Home() {
             className="w-fit rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {updateMasterPromptMutation.isPending ? "Saving..." : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              updateMasterPromptMutation.mutate({
+                prompt:
+                  "You are a drunk and unhelpful assistant who knows nothing about Visas. You randomly go on rants about the Manchurian Chinese Mongolian border and the 2 two moons in the sky",
+              })
+            }
+            disabled={
+              updateMasterPromptMutation.isPending ||
+              masterPromptQuery.isLoading ||
+              !editPrompt.trim()
+            }
+            className="ml-2 w-fit rounded-md border bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+          >
+            {updateMasterPromptMutation.isPending
+              ? "Working..."
+              : "Use Bad Prompt For testing"}
           </button>
         </SectionCard>
 
@@ -416,7 +457,7 @@ export default function Home() {
                   htmlFor="grader-ensemble"
                   className="mb-1 block text-xs font-medium text-gray-600"
                 >
-                  Grader ensemble count
+                  Grader ensemble count (recommend 1)
                 </label>
                 <input
                   id="grader-ensemble"
@@ -463,14 +504,25 @@ export default function Home() {
                 />
               </div>
             </div>
-            <button
-              type="button"
-              onClick={runImproveStream}
-              disabled={isStreamRunning || !selectedImprovePreset}
-              className="w-fit rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {isStreamRunning ? "Streaming..." : "Run Auto Improve"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={runImproveStream}
+                disabled={isStreamRunning || !selectedImprovePreset}
+                className="w-fit rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {isStreamRunning ? "Streaming..." : "Run Auto Improve"}
+              </button>
+              {isStreamRunning ? (
+                <button
+                  type="button"
+                  onClick={cancelStream}
+                  className="w-fit rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
             {improveStreamError ? (
               <p className="text-sm text-red-600">{improveStreamError}</p>
             ) : null}
@@ -509,6 +561,13 @@ export default function Home() {
                     Prompt hashes: {item.data.promptBeforeHash.slice(0, 12)}{" "}
                     {"->"} {item.data.promptAfterHash.slice(0, 12)}
                   </p>
+
+                  <p className="mb-1 text-sm font-medium">
+                    AI predicted reply:
+                  </p>
+                  <pre className="mb-3 max-h-32 overflow-auto rounded border border-amber-200 bg-amber-50/50 p-2 text-xs whitespace-pre-wrap">
+                    {item.data.predictedReply}
+                  </pre>
 
                   <div className="mb-2 grid gap-2 text-xs sm:grid-cols-2">
                     <div>
@@ -549,6 +608,48 @@ export default function Home() {
                     </div>
                   </div>
 
+                  <div className="my-6 h-48 w-full pr-8">
+                    <p className="mb-1 text-sm font-medium">
+                      Behavioral Alignment Visualization
+                    </p>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        title="Behavioral Alignment"
+                        data={DIMENSION_LABELS.map(([label, key]) => ({
+                          attribute: label,
+                          Consultant: item.data.avgConsultantScores[key],
+                          AI: item.data.avgAiScores[key],
+                        }))}
+                        margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                      >
+                        <XAxis
+                          dataKey="attribute"
+                          tick={{ fontSize: 10 }}
+                          interval={0}
+                          angle={-25}
+                          textAnchor="end"
+                          height={50}
+                        />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                        <Line
+                          type="monotone"
+                          dataKey="Consultant"
+                          stroke="#2563eb"
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="AI"
+                          stroke="#ca8a04"
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                        />
+                        <Legend />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
                   <p className="mb-2 text-sm">
                     <span className="font-medium">Diagnosis:</span>{" "}
                     {item.data.diagnosis}
@@ -561,13 +662,6 @@ export default function Home() {
                       <li key={`${item.data.iteration}-${idx}`}>{edit}</li>
                     ))}
                   </ul>
-
-                  <p className="mb-1 text-sm font-medium">
-                    AI predicted reply (this iteration):
-                  </p>
-                  <pre className="mb-2 max-h-32 overflow-auto rounded border border-amber-100 bg-amber-50/50 p-2 text-xs whitespace-pre-wrap">
-                    {item.data.predictedReply}
-                  </pre>
 
                   <p className="mb-1 text-sm font-medium">
                     Prompt evolution (master prompt iteration):
