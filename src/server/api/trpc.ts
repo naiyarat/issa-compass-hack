@@ -6,10 +6,11 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { env } from "@/env";
 import { db } from "@/server/db";
 
 /**
@@ -96,11 +97,25 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   return result;
 });
 
+const secretKeyMiddleware = t.middleware(({ ctx, next }) => {
+  const secret = ctx.headers.get("x-secret-key");
+  if (secret !== env.SECRET_KEY) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid or missing secret key.",
+    });
+  }
+  return next({ ctx });
+});
+
 /**
  * Public (unauthenticated) procedure
- *
- * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
- * guarantee that a user querying is authorized, but you can still access user session data if they
- * are logged in.
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
+
+/**
+ * Protected procedure - requires valid X-Secret-Key header
+ */
+export const protectedProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(secretKeyMiddleware);

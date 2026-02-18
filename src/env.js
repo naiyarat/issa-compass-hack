@@ -17,6 +17,7 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    SECRET_KEY: z.string().min(1).default("AARONYIP"),
   },
 
   /**
@@ -41,6 +42,7 @@ export const env = createEnv({
     GRADER_MODEL: process.env.GRADER_MODEL,
     EDITOR_MODEL: process.env.EDITOR_MODEL,
     NODE_ENV: process.env.NODE_ENV,
+    SECRET_KEY: process.env.SECRET_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

@@ -22,6 +22,7 @@ import {
 } from "@/app/_data/conversation-request-options";
 import type { StreamEvent } from "@/app/_types";
 import { getBaseUrl } from "@/app/_types";
+import { getSecretKeyHeader } from "@/lib/secret-key";
 import { type AppRouter } from "@/server/api/root";
 import { api } from "@/trpc/react";
 
@@ -112,6 +113,10 @@ export default function Home() {
           headers: () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
+            const secret = getSecretKeyHeader();
+            for (const [k, v] of Object.entries(secret)) {
+              headers.set(k, v);
+            }
             return headers;
           },
         }),

@@ -8,7 +8,7 @@ import {
   improveAiManuallyInputSchema,
   updateMasterPromptInputSchema,
 } from "@/server/api/dto/ai-prompt.dto";
-import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
   generateReplyFromMasterPrompt,
   getMasterPromptState,
@@ -58,7 +58,7 @@ function buildResponderUserPrompt(
 }
 
 export const aiPromptRouter = createTRPCRouter({
-  getMasterPrompt: publicProcedure.query(async ({ ctx }) => {
+  getMasterPrompt: protectedProcedure.query(async ({ ctx }) => {
     try {
       return await getMasterPromptState({ db: ctx.db });
     } catch (error) {
@@ -69,7 +69,7 @@ export const aiPromptRouter = createTRPCRouter({
     }
   }),
 
-  generateReply: publicProcedure
+  generateReply: protectedProcedure
     .input(generateReplyInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -86,7 +86,7 @@ export const aiPromptRouter = createTRPCRouter({
       }
     }),
 
-  improveAi: publicProcedure
+  improveAi: protectedProcedure
     .input(improveAiInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -102,7 +102,7 @@ export const aiPromptRouter = createTRPCRouter({
       }
     }),
 
-  improveAiStream: publicProcedure
+  improveAiStream: protectedProcedure
     .input(improveAiInputSchema)
     .query(async (opts) => {
       const { input, ctx } = opts;
@@ -237,7 +237,7 @@ export const aiPromptRouter = createTRPCRouter({
       return queue.iterable;
     }),
 
-  improveAiManually: publicProcedure
+  improveAiManually: protectedProcedure
     .input(improveAiManuallyInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
@@ -253,7 +253,7 @@ export const aiPromptRouter = createTRPCRouter({
       }
     }),
 
-  updateMasterPrompt: publicProcedure
+  updateMasterPrompt: protectedProcedure
     .input(updateMasterPromptInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {

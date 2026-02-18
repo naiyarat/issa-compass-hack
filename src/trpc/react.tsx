@@ -7,6 +7,7 @@ import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
 
+import { getSecretKeyHeader } from "@/lib/secret-key";
 import { type AppRouter } from "@/server/api/root";
 import { createQueryClient } from "./query-client";
 
@@ -55,6 +56,10 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           headers: () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
+            const secret = getSecretKeyHeader();
+            for (const [k, v] of Object.entries(secret)) {
+              headers.set(k, v);
+            }
             return headers;
           },
         }),
