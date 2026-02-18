@@ -1,6 +1,6 @@
 import { env } from "@/env";
 
-type RoleProvider = "google" | "groq" | "deepseek";
+// type RoleProvider = "google" | "groq" | "deepseek";
 type LlmRole = "responder" | "grader" | "editor";
 
 type GenerateInput = {
@@ -15,11 +15,11 @@ type GenerateJsonInput = GenerateInput & {
   schemaHint?: string;
 };
 
-const roleProviderMap: Record<LlmRole, RoleProvider> = {
-  responder: "google",
-  grader: "groq",
-  editor: "deepseek",
-};
+// const roleProviderMap: Record<LlmRole, RoleProvider> = {
+//   responder: "google",
+//   grader: "groq",
+//   editor: "deepseek",
+// };
 
 const defaultModelByRole: Record<LlmRole, string> = {
   responder: env.RESPONDER_MODEL,
@@ -99,59 +99,59 @@ async function callGoogleGenerateText(input: GenerateInput): Promise<string> {
 }
 
 // not enough tokens to test, so using gemini instead
-async function callOpenAiCompatibleGenerateText(
-  baseUrl: string,
-  apiKey: string,
-  input: GenerateInput,
-): Promise<string> {
-  const model = defaultModelByRole[input.role];
-  const provider = baseUrl.includes("groq") ? "groq" : "deepseek";
+// async function callOpenAiCompatibleGenerateText(
+//   baseUrl: string,
+//   apiKey: string,
+//   input: GenerateInput,
+// ): Promise<string> {
+//   const model = defaultModelByRole[input.role];
+//   const provider = baseUrl.includes("groq") ? "groq" : "deepseek";
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: input.temperature ?? 0.2,
-      max_tokens:
-        input.maxTokens ?? defaultMaxTokensByRole[input.role] ?? 10000,
-      messages: [
-        { role: "system", content: input.systemPrompt },
-        { role: "user", content: input.userPrompt },
-      ],
-    }),
-  });
+//   const response = await fetch(`${baseUrl}/chat/completions`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       Authorization: `Bearer ${apiKey}`,
+//     },
+//     body: JSON.stringify({
+//       model,
+//       temperature: input.temperature ?? 0.2,
+//       max_tokens:
+//         input.maxTokens ?? defaultMaxTokensByRole[input.role] ?? 10000,
+//       messages: [
+//         { role: "system", content: input.systemPrompt },
+//         { role: "user", content: input.userPrompt },
+//       ],
+//     }),
+//   });
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    if (
-      provider === "deepseek" &&
-      response.status === 402 &&
-      errorBody.toLowerCase().includes("insufficient balance")
-    ) {
-      throw new Error("DEEPSEEK_INSUFFICIENT_BALANCE");
-    }
-    if (
-      response.status === 429 ||
-      errorBody.toLowerCase().includes("resource_exhausted") ||
-      errorBody.toLowerCase().includes("quota exceeded")
-    ) {
-      throw new Error("LLM_PROVIDER_QUOTA_EXCEEDED");
-    }
-    throw new Error("LLM_PROVIDER_REQUEST_FAILED");
-  }
+//   if (!response.ok) {
+//     const errorBody = await response.text().catch(() => "");
+//     if (
+//       provider === "deepseek" &&
+//       response.status === 402 &&
+//       errorBody.toLowerCase().includes("insufficient balance")
+//     ) {
+//       throw new Error("DEEPSEEK_INSUFFICIENT_BALANCE");
+//     }
+//     if (
+//       response.status === 429 ||
+//       errorBody.toLowerCase().includes("resource_exhausted") ||
+//       errorBody.toLowerCase().includes("quota exceeded")
+//     ) {
+//       throw new Error("LLM_PROVIDER_QUOTA_EXCEEDED");
+//     }
+//     throw new Error("LLM_PROVIDER_REQUEST_FAILED");
+//   }
 
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
+//   const payload = (await response.json()) as {
+//     choices?: Array<{ message?: { content?: string } }>;
+//   };
 
-  const text = payload.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("EMPTY_LLM_RESPONSE");
-  return text;
-}
+//   const text = payload.choices?.[0]?.message?.content?.trim();
+//   if (!text) throw new Error("EMPTY_LLM_RESPONSE");
+//   return text;
+// }
 
 // not enough tokens to test, so using gemini for everything instead
 async function generateByRole(input: GenerateInput): Promise<string> {

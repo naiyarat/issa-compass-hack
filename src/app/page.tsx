@@ -164,9 +164,7 @@ export default function Home() {
         if (error?.name === "AbortError") {
           setImproveStreamError(null);
         } else {
-          setImproveStreamError(
-            error?.message ?? "Failed to consume stream.",
-          );
+          setImproveStreamError(error?.message ?? "Failed to consume stream.");
         }
         setIsStreamRunning(false);
       });
@@ -206,7 +204,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 text-gray-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4">
-        <h1 className="text-3xl font-bold">Nike's Issa Compass Hack Panel</h1>
+        <h1 className="text-3xl font-bold">Nike Issa Compass Hack Panel</h1>
 
         <MasterPromptSection
           prompt={editPrompt}
@@ -217,9 +215,7 @@ export default function Home() {
               : null
           }
           isLoading={masterPromptQuery.isLoading}
-          onSave={(prompt) =>
-            updateMasterPromptMutation.mutate({ prompt })
-          }
+          onSave={(prompt) => updateMasterPromptMutation.mutate({ prompt })}
           isSaving={updateMasterPromptMutation.isPending}
         />
 

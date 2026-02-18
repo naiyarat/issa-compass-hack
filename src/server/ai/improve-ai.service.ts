@@ -223,7 +223,6 @@ export async function improveAiRun({
 
   const { prompt: currentStoredPrompt } = await getOrCreateMasterPrompt(db);
   let currentPrompt = currentStoredPrompt;
-  let bestPrompt = currentPrompt;
   let bestDelta = Number.POSITIVE_INFINITY;
   let noImprovementCount = 0;
   let convergedIteration: number | undefined;
@@ -309,7 +308,6 @@ export async function improveAiRun({
 
     if (avgDelta < bestDelta) {
       bestDelta = avgDelta;
-      bestPrompt = currentPrompt;
       noImprovementCount = 0;
     } else {
       noImprovementCount += 1;
