@@ -8,6 +8,12 @@ export const env = createEnv({
    */
   server: {
     DATABASE_URL: z.string().url(),
+    GOOGLE_API_KEY: z.string().min(1),
+    GROQ_API_KEY: z.string().min(1),
+    DEEPSEEK_API_KEY: z.string().min(1),
+    RESPONDER_MODEL: z.string().min(1).default("gemini-2.5-flash"),
+    GRADER_MODEL: z.string().min(1).default("llama-3.1-8b-instant"),
+    EDITOR_MODEL: z.string().min(1).default("deepseek-chat"),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -28,6 +34,12 @@ export const env = createEnv({
    */
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+    RESPONDER_MODEL: process.env.RESPONDER_MODEL,
+    GRADER_MODEL: process.env.GRADER_MODEL,
+    EDITOR_MODEL: process.env.EDITOR_MODEL,
     NODE_ENV: process.env.NODE_ENV,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
