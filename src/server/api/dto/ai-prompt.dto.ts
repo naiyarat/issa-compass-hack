@@ -47,7 +47,7 @@ export const improveAiInputSchema = z.object({
   consultantReply: z.string().min(1).max(12000),
   maxIterations: z.number().int().min(1).max(10).default(5),
   thresholdDelta: z.number().min(0).max(100).default(20),
-  graderEnsembleCount: z.number().int().min(1).max(10).default(5),
+  graderEnsembleCount: z.number().int().min(1).max(3).default(1),
   earlyStopPatience: z.number().int().min(1).max(10).default(2),
   includePromptDiff: z.boolean().optional().default(false),
 });

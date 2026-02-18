@@ -1,6 +1,6 @@
 ## Overview & Improvements
 
-The base assignment gave me a solid starting point: **generate an LLM reply from conversation context** and **update a stored “master prompt”** over time. From that, I wanted to improve the parts that _directly_ affect reply quality, focusing \*_context engineering + prompt optimization_.
+The base assignment gave me a solid starting point: **generate an LLM reply from conversation context** and **update a stored “master prompt”** over time. From that, I wanted to improve the parts that _directly_ affect reply quality, focusing on context engineering + prompt optimization.
 
 To do that, I built an **iterative self-improvement workflow** that reprompts itself using **three specialized prompts** (Responder → Grader → Editor). Instead of “trust me, the prompt got better at simulating a real consultant,” the system produces **measurable convergence** toward real consultant behavior and makes that improvement observable with statistics and graphical visualization.　
 
