@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+##Frontend:
+
+- Typescript
+- NextJS + TailwindCSS 4
+- ShadCN and radiix
+- Zustand (state management)
+- Form Management
+  - Zod
+  - React hook form
+
+##Backend:
+
+- Trpc + react query
+- Postgres
+- DrizzleORM
+
+##Payment provider
+
+- NowPayment

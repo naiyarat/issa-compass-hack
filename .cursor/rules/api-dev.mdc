@@ -1,0 +1,200 @@
+---
+description: Writing apis and backend logic
+globs: src/server/**/*.ts
+alwaysApply: false
+---
+
+##General Directory Structure
+
+- Service
+  This folder is where our services for each APIs are kept. The file naming convention goes api_name.service.ts. Here, the api interface and basic api logic, such as Create, Read, Update, Delete is kept. For more complex logic and specific usecases, be sure to implement your API in the usecase dir.
+  For creates, return [id (string), ErrorOrNull]
+  For updates, return ErrorOrNull (null on success, error otherwise)
+  For deletes, return ErrorOrNull (null on success, error otherwise)
+  For reads, return [data or data[], ErrorOrNull]
+
+- Dto
+  This folder stands for data transfer object. It is where our interfaces, types and zod validation schemas for requests, responses, and mutation. When writing a service or usecase class, always implements the interface from the dto file. When applicable, create the zod schema first then user z.infer to get the type.
+- Usecase
+  This file is where our usecases are kept. The file naming convention goes api_name.usecase.action_name.ts (e.g query, mutation, etc). Here, the complex logic for specific usecases are stored. For example, logic for payment with the payment provider.
+- routers
+  here is where the service or usecase object should be called. There should not be any complex logic here! Keep the router clean with only zod schema validation, api requesting and error handling.
+- root.ts
+  after you have added your router to the routers folder, make sure to put it in this so that you can call it with trpc on the frontend
+
+##Service Implementation Guide
+
+### Service Structure
+
+- Create an interface `XxxService` defining all methods
+- Implement with `XxxServiceImpl` class
+- Place in `src/server/api/service/xxx.service.ts`
+- Import types from corresponding DTO file
+
+### Service Interface Methods
+
+```typescript
+export interface XxxService {
+  // Read operations
+  getByFilter(filter?: SQL): Promise<[Xxx[], ErrorOrNull]>;
+  getOneByFilter(filter: SQL): Promise<[Xxx | null, ErrorOrNull]>;
+
+  // Write operations
+  create(
+    data: Omit<Xxx, "id" | "createdAt">,
+    trx?: typeof db,
+  ): Promise<[string | null, ErrorOrNull]>;
+  update(
+    filter: SQL,
+    update: Partial<Xxx>,
+    trx?: typeof db,
+  ): Promise<ErrorOrNull>;
+  delete(filter: SQL, trx?: typeof db): Promise<ErrorOrNull>;
+}
+```
+
+### Implementation Patterns
+
+#### Error Handling
+
+- Use `.catch()` on database operations to convert errors to `PostgreSQLError`
+- Check if result is `instanceof Error` for database failures
+- Use `ErrorWithCategory` for business logic errors (not found, validation, etc.)
+- Return appropriate error categories: `ResourceNotFound`, `DatabaseFailure`, etc.
+
+#### Transaction Support
+
+- Accept optional `trx?: typeof db` parameter for transactional operations
+- Use `const database = trx ?? db;` to default to main db connection
+- Support atomic operations across multiple service calls
+
+#### Method Implementation Examples
+
+**Create Method:**
+
+```typescript
+async create(data: Omit<Xxx, "id" | "createdAt">, trx?: typeof db): Promise<[string | null, ErrorOrNull]> {
+  const database = trx ?? db;
+
+  const res = await database
+    .insert(xxxTable)
+    .values(data)
+    .returning({ insertedId: xxxTable.id })
+    .catch((e) => {
+      console.log(e);
+      return new PostgreSQLError();
+    });
+
+  if (res instanceof Error) return [null, res];
+  if (res.length === 0) return [null, new ErrorWithCategory("Failed to create", ErrorCategory.DatabaseFailure)];
+  return [res[0].insertedId, null];
+}
+```
+
+**Read Methods:**
+
+```typescript
+async getByFilter(filter?: SQL): Promise<[Xxx[], ErrorOrNull]> {
+  const res = await db.query.xxxTable.findMany({ where: filter }).catch((e) => {
+    console.log(e);
+    return new PostgreSQLError();
+  });
+
+  if (res instanceof Error) return [[], res];
+  return [res, null];
+}
+
+async getOneByFilter(filter: SQL): Promise<[Xxx | null, ErrorOrNull]> {
+  const res = await db.query.xxxTable.findFirst({ where: filter }).catch((e) => {
+    console.log(e);
+    return new PostgreSQLError();
+  });
+
+  if (res instanceof Error) return [null, res];
+  if (!res) return [null, new ErrorWithCategory("Not found", ErrorCategory.ResourceNotFound)];
+  return [res, null];
+}
+```
+
+**Update Method:**
+
+```typescript
+async update(filter: SQL, update: Partial<Xxx>, trx?: typeof db): Promise<ErrorOrNull> {
+  const database = trx ?? db;
+
+  const res = await database
+    .update(xxxTable)
+    .set(update)
+    .where(filter)
+    .returning({ updatedId: xxxTable.id })
+    .catch((e) => {
+      console.log(e);
+      return new PostgreSQLError();
+    });
+
+  if (res instanceof Error) return res;
+  if (res.length === 0) return new ErrorWithCategory("Not found", ErrorCategory.ResourceNotFound);
+  return null;
+}
+```
+
+**Delete Method:**
+
+```typescript
+async delete(filter: SQL, trx?: typeof db): Promise<ErrorOrNull> {
+  const database = trx ?? db;
+
+  const res = await database
+    .delete(xxxTable)
+    .where(filter)
+    .catch((e) => {
+      console.log(e);
+      return new PostgreSQLError();
+    });
+
+  if (res instanceof Error) return res;
+  return null;
+}
+```
+
+### Import Patterns
+
+```typescript
+import type { SQL } from "drizzle-orm";
+import { db } from "@/server/db";
+import { xxxTable } from "@/server/db/tables/xxx";
+import {
+  ErrorCategory,
+  ErrorWithCategory,
+  PostgreSQLError,
+  type ErrorOrNull,
+} from "@/server/utils/error";
+import type { Xxx } from "../dto/xxx.dto";
+```
+
+### DTO Types
+
+- Define main type as `export type Xxx = typeof xxxTable.$inferSelect;`
+- Import from DTO file for consistency across services
+- Use `Omit<Xxx, "id" | "createdAt">` for create operations
+
+##General API/query patterns
+
+- Use usecase classes that return tuples: `[data, ErrorOrNull]`. Return empty data + `PostgreSQLError()` on failure.
+- Prefer chaining `.catch()` on db queries to map errors into `PostgreSQLError` rather than wrapping the whole method in `try/catch` unless multiple awaits depend on each other.
+- Keep filters as arrays of conditions, then `and(...whereConditions)` when building the query.
+- Avoid over arching try catch
+
+##DrizzleORM usage
+
+- Build queries with `select`, `from`, `innerJoin`/`leftJoin`, `where`, `groupBy`, `orderBy`, `limit`.
+- Use `sql\`\``for aggregates, computed fields, and subqueries;`eq/and/or/ilike/lt/gt/gte/lte` for predicates.
+- Map nullable aggregates with `.mapWith()` when needed.
+- instead of
+
+```typescript
+    // incorrect pattern
+    status: sql<string>`CASE WHEN user."id" IN (SELECT "blockedUserId" FROM "block") THEN 'banned' ELSE 'active' END`,
+    // correct pattern
+    status: sql<string>`CASE WHEN ${user.id} IN (SELECT ${block.blockedId} FROM ${block} WHERE ${block.isActive} = true) THEN 'banned' ELSE 'active' END`,
+```

@@ -1,0 +1,46 @@
+---
+description: Frontend development standards for React UI work
+globs: **/*.tsx
+alwaysApply: false
+---
+
+# Frontend Dev
+
+- Build with small, composable React components.
+- Keep component files focused: UI + minimal orchestration only.
+- Move non-trivial logic into hooks/utils instead of inline JSX.
+- Prefer clear loading, error, and empty states for async UI.
+- Keep naming semantic (`UserCard`, `PortfolioTable`, `usePositions`).
+- Keep styling consistent with existing project patterns.
+
+## Implementation Quality
+
+- Keep changes concise and scoped to the request.
+- Preserve TypeScript safety; avoid `any` unless unavoidable.
+- Reuse existing components/utilities before adding new abstractions.
+- Add minimal comments only where logic is non-obvious.
+
+## Collaboration Style
+
+- Ask clarifying questions when requirements are ambiguous.
+- After implementing, quickly critique the result for improvements.
+- Offer a tighter v2 when a simpler or cleaner approach exists.
+
+## Rendering Queries
+
+- for frontend, use trpc api
+- for error and success handling, do not use try catch but use onSuccess and onError via the api call
+
+## Filtering
+
+- use useMemo whenever paginating or filtering data to reduce rerenders
+
+## Forms
+
+- use react hook form with zod for validation
+- for multipage forms, use zustand stores
+- refer to other rule for more details
+
+## Dropdowns and Selects
+
+- NEVER use the default select component, opt for our custom dropdown
